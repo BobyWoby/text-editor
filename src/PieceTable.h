@@ -1,4 +1,6 @@
 #pragma once
+#define FILE_BUFFER true
+#define ADD_BUFFER false
 
 #include <list>
 #include <string>
