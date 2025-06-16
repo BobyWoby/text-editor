@@ -26,7 +26,7 @@ void PieceTable::insert(std::string str, int cursorPos){
         offset += it1->length;
         if(offset == cursorPos){
             // its at an edge and should be simpler
-            pieceDescriptors.insert(it1, newDesc);
+            pieceDescriptors.insert(++it1, newDesc);
             return;
         } else if(offset > cursorPos){
             uint startPos = it1->startIndex;
