@@ -1,7 +1,10 @@
+#include "PieceTable.h"
 #include "SDL3/SDL_error.h"
 #include "SDL3/SDL_keyboard.h"
 #include "SDL3/SDL_keycode.h"
 #include "SDL3/SDL_pixels.h"
+#include "SDL3/SDL_rect.h"
+#include "SDL3/SDL_stdinc.h"
 #include "SDL3/SDL_surface.h"
 #include "SDL3/SDL_test_font.h"
 #include <SDL3/SDL_events.h>
@@ -19,8 +22,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <liburing/io_uring.h>
+#include <string>
 
-enum Mode { NORMAL, INSERT };
+enum Mode { NORMAL, INSERT, COMMAND};
 
 class TextRenderer{
     private:
@@ -29,6 +34,7 @@ class TextRenderer{
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
+
     std::string text_string{};
     TTF_Font *font; 
     TTF_TextEngine *text_engine; 
@@ -37,8 +43,12 @@ class TextRenderer{
     int windowWidth, windowHeight;
     int textWidth, textHeight;
     SDL_FRect rect;
+    SDL_Surface* screenSurface;
 
     SDL_Color col = SDL_Color(255, 255, 255);
+    SDL_Color cursorCol = SDL_Color(255, 255, 255, 0);
+
+    bool textWrapping = false;
 
     TextRenderer(){
         TTF_Init();
@@ -53,25 +63,65 @@ class TextRenderer{
 
         text_engine = TTF_CreateRendererTextEngine(renderer);
         text = TTF_CreateText(text_engine, font, text_string.c_str(), 0);
+        screenSurface = SDL_GetWindowSurface(window);
 
         SDL_GetWindowSize(window, &windowWidth, &windowHeight);
     }
 
-    void render(){
+    void drawCursor(int cursorPos){
+        int cw, ch;
+        TTF_GetStringSize(font, "a", 0, &cw, &ch); // get the width and height of a single character
+        int x, y;
+        int lastNewLine = cursorPos, newLineCount = 0;
+        bool newLine = false;
+        if(cursorPos < text_string.length() - 1){
+            for(int i = cursorPos; i >= 0; i--){
+                if(text_string.at(i) == '\n'){
+                    newLineCount++;
+                    newLine = true;
+                }else{
+                    if(!newLine){
+                        lastNewLine--;
+                    }
+                }
+            }
+        }
+        int cursorOffset = cursorPos - lastNewLine;
+        x = ((cursorOffset -1) * cw);
+        y = (newLineCount * ch); 
+        // SDL_Rect cursorRect = SDL_Rect(x, y, cw, ch);
+        SDL_FRect cursorRect = SDL_FRect(x, y, cw, ch);
+        Uint8 r, g, b, a;
+        SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+        SDL_SetRenderDrawColor(renderer, cursorCol.r, cursorCol.g, cursorCol.b, cursorCol.a);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        SDL_RenderRect(renderer, &cursorRect);
+        // SDL_RenderFillRect(renderer, &cursorRect);
+        SDL_SetRenderDrawColor(renderer, r, g, b, a);
+
+    }
+
+    void render(int cursorPos){
         // If this isn't here, the program will leak memory and brick ur computer
         TTF_SetTextString(text, text_string.c_str(), sizeof(text_string));
         SDL_DestroyTexture(texture);
         SDL_Surface *surface; 
-        TTF_GetStringSizeWrapped(font, text_string.c_str(), 0, windowWidth, &textWidth, &textHeight);
-
+        TTF_GetStringSizeWrapped(font, text_string.c_str(), 0, 0, &textWidth, &textHeight);
         
         if(text_string.length() > 0){
-            // std::cout << text_string.c_str() << "\n"; 
-            surface = TTF_RenderText_Solid_Wrapped(font, text_string.c_str(), 0, col, windowWidth);
-            if(surface == NULL){
-                std::cout << "Surface is NULL: " << SDL_GetError() << "\n";
-            } 
-            rect = SDL_FRect(0, 0, (float)std::min(textWidth, windowWidth), textHeight);
+            if(textWrapping){
+                surface = TTF_RenderText_Solid_Wrapped(font, text_string.c_str(), 0, col, windowWidth);
+                if(surface == NULL){
+                    std::cout << "Surface is NULL: " << SDL_GetError() << "\n";
+                } 
+                rect = SDL_FRect(0, 0, (float)std::min(textWidth, windowWidth), textHeight);
+            }else{
+                surface = TTF_RenderText_Solid_Wrapped(font, text_string.c_str(), 0, col, 0);
+                if(surface == NULL){
+                    std::cout << "Surface is NULL: " << SDL_GetError() << "\n";
+                } 
+                rect = SDL_FRect(0, 0, (float)textWidth, textHeight);
+            }
             texture = SDL_CreateTextureFromSurface(renderer, surface);
             if(texture == NULL){
                 std::cout << "texture is NULL: " << SDL_GetError() << "\n";
@@ -79,22 +129,26 @@ class TextRenderer{
         }
         SDL_RenderClear(renderer);
 
-        // TTF_DrawRendererText(text, 0, 0);
         SDL_RenderTexture(renderer, texture, NULL, &rect);
+        drawCursor(cursorPos);
         SDL_RenderPresent(renderer);
+
         SDL_DestroySurface(surface);
     }
     ~TextRenderer(){
         SDL_DestroyRenderer(renderer);
         SDL_DestroyTexture(texture);
         TTF_DestroyRendererTextEngine(text_engine);
+        SDL_DestroySurface(screenSurface);
         SDL_DestroyWindow(window);
     }
 };
+
 int main(int argc, char *argv[]) {
     TextRenderer drawer{};
     bool running = true;
     Mode activeMode = NORMAL;
+    int cursor = 0;
 
     std::string filepath = "";
     if(argc < 2){
@@ -114,28 +168,39 @@ int main(int argc, char *argv[]) {
         std::cout << "Failed to open " << filepath << "\n";
         return 0;
     }
+    std::string fileStr{};
+    char c;
+    while(file.get(c)){
+        fileStr += c;
+    }
+    drawer.text_string = fileStr;
+    PieceTable ptable{fileStr};
 
     //write the file to the piece table here 
     char insertText[1024] = {0};
+    std::string insertBuf = "";
     while (running) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_EVENT_TEXT_INPUT:
                     strncpy(insertText, event.text.text, sizeof(insertText));
-
-                    //TODO: add this to the piece table
-                    TTF_AppendTextString(drawer.text, event.text.text, 0);
-                    drawer.text_string += insertText;
+                    ptable.insert(insertText, cursor);
+                    ptable.stringify(drawer.text_string);
+                    cursor++;
+                    // drawer.text_string += insertText;
                     break;
                 case SDL_EVENT_KEY_DOWN:
                     SDL_Keycode keycode = event.key.key;
                     if (event.key.mod == 0x1040 && keycode == SDLK_C){ // the SDL_KMOD_LCTRL is defined as 0x0040u which is wrong as the u doesn't get registered
                         SDL_StopTextInput(drawer.window);
+                        // ptable.print();
                         activeMode = NORMAL;
                     } else if (keycode == SDLK_RETURN && activeMode == INSERT) {
                         strncpy(insertText, "\n", sizeof(insertText));
-                        //TODO: add this to the piece table
+                        ptable.insert(insertText, cursor);
+                        ptable.stringify(drawer.text_string);
+                        cursor++;
                         drawer.text_string += "\n";
                     } else if (keycode == SDLK_ESCAPE || (keycode == SDLK_Q && activeMode != INSERT)) {
                         SDL_StopTextInput(drawer.window);
@@ -144,11 +209,21 @@ int main(int argc, char *argv[]) {
                     } else if (keycode == SDLK_I) {
                         SDL_StartTextInput(drawer.window);
                         activeMode = INSERT;
-                    }                    // process mode changes and stuff here
+                    } else if (keycode == SDLK_H){
+                        if(activeMode == NORMAL && cursor > 0){
+                            cursor -= 1;
+                        }
+                    } else if (keycode == SDLK_L){
+                        if (activeMode == NORMAL && cursor < drawer.text_string.length() - 2){
+                            cursor += 1;
+                        }
+                    }
+
+                    // process mode changes and stuff here
                     break;
             }
         }
-        drawer.render();
+        drawer.render(cursor);
     }
     return 0;
 }

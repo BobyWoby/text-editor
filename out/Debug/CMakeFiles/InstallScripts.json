@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/bobywoby/dev/c++/text_editor/out/Debug/cmake_install.cmake",
+		"/home/bobywoby/dev/c++/text_editor/out/Debug/vendored/SDL/cmake_install.cmake",
+		"/home/bobywoby/dev/c++/text_editor/out/Debug/vendored/SDL_ttf/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

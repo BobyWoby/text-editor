@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/text-editor.dir/link.d "CMakeFiles/text-editor.dir/src/main.cpp.o" "CMakeFiles/text-editor.dir/src/PieceTable.cpp.o" -o text-editor  -Wl,-rpath,/home/bobywoby/dev/c++/text_editor/out/Debug/vendored/SDL_ttf:/home/bobywoby/dev/c++/text_editor/out/Debug/vendored/SDL: vendored/SDL_ttf/libSDL3_ttf.so.0.3.0 vendored/SDL/libSDL3.so.0.3.0
