@@ -206,16 +206,21 @@ int main(int argc, char *argv[]) {
                         SDL_StopTextInput(drawer.window);
                         activeMode = NORMAL;
                         running = false;
-                    } else if (keycode == SDLK_I) {
-                        SDL_StartTextInput(drawer.window);
-                        activeMode = INSERT;
-                    } else if (keycode == SDLK_H){
-                        if(activeMode == NORMAL && cursor > 0){
-                            cursor -= 1;
-                        }
-                    } else if (keycode == SDLK_L){
-                        if (activeMode == NORMAL && cursor < drawer.text_string.length() - 2){
-                            cursor += 1;
+                    } else if(activeMode == NORMAL){
+                        if (keycode == SDLK_I) {
+                            SDL_StartTextInput(drawer.window);
+                            activeMode = INSERT;
+                        } else if (keycode == SDLK_H){
+                            if(cursor > 0){
+                                cursor -= 1;
+                            }
+                        } else if (keycode == SDLK_L){
+                            if (cursor < drawer.text_string.length() - 2){
+                                cursor += 1;
+                            }
+                        } else if (keycode == SDLK_X){
+                            ptable.remove(cursor, 1);
+                            ptable.stringify(drawer.text_string);
                         }
                     }
 

@@ -19,7 +19,7 @@ class PieceTable {
         void insert(std::string str, int cursorPos);
         void remove(int cursorPos, int length);
         void stringify(std::string &ret);
-        void print();
+        char* print();
 
         PieceTable(std::string str);
         ~PieceTable();
