@@ -20,6 +20,9 @@ class PieceTable {
         void remove(int cursorPos, int length);
         void stringify(std::string &ret);
         char* print();
+        int rpos(int cursor, PieceDescriptor current);
+        int bufpos(int cursor, bool isFile);
+        PieceDescriptor at(int cursor);
 
         PieceTable(std::string str);
         ~PieceTable();
