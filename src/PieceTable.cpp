@@ -32,7 +32,10 @@ void PieceTable::stringify(std::string &ret){
 
 //TODO: Implement this function
 void PieceTable::insert(std::string str, int cursorPos){
-
+}
+void PieceTable::insertAtEdge(std::string str, std::list<PieceDescriptor>::iterator it){
+    pieceDescriptors.insert(it, {false, (uint)add.length(), str.length()});
+    add += str;
 }
 
 //TODO: Implement this function
@@ -41,7 +44,7 @@ void PieceTable::remove(int cursorPos, int length){
 
 /**
  * Finds the position of the cursor relative to the beginning of the current
- * piece descriptor
+ * piece descriptor. If you need the bufpos, just add rpos to current.startIndex
  *
  * @param cursor The position of the cursor within the text document
  * @param current The descriptor that the cursor is in
@@ -63,11 +66,6 @@ int PieceTable::rpos(int cursor, PieceDescriptor current){
         }
     }
     return cursor - current.startIndex;
-}
-
-int PieceTable::bufpos(int cursor, bool isFile){
-    //TODO: Implement this function
-    return cursor;
 }
 
 PieceDescriptor PieceTable::at(int cursor){
