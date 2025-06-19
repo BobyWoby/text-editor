@@ -16,15 +16,21 @@ int main(){
     std::string out;
     ptable.stringify(out);
     std::cout << out <<"\n";
-
-    auto piece = ptable.at(8);
-    std::list<PieceDescriptor>::iterator it1 = ptable.pieceDescriptors.begin();
-    while(it1 != ptable.pieceDescriptors.end()){
-        ptable.insertAtEdge("test ", it1);
-        if(it1 != ptable.pieceDescriptors.end()){
-            it1++;
-        }
-    }
+    auto piece = ptable.at(7);
+    std::cout << ptable.rpos(7, piece) << "\n";
+    
+    /* Insert at Edge Test*/
+    // std::list<PieceDescriptor>::iterator it1 = ptable.pieceDescriptors.begin();
+    // while(it1 != ptable.pieceDescriptors.end()){
+    //     ptable.insertAtEdge("test ", it1);
+    //     if(it1 != ptable.pieceDescriptors.end()){
+    //         it1++;
+    //     }
+    // }
+    /* Insert at cursor Test */
+    // ptable.insert("test", 9);
+    // ptable.insert("test", 0);
+    // ptable.insert("test", 7);
     ptable.stringify(out);
     std::cout << out << "\n";
     return 0;

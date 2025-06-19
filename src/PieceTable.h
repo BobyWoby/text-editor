@@ -23,6 +23,7 @@ class PieceTable {
         char* print();
         int rpos(int cursor, PieceDescriptor current);
         PieceDescriptor at(int cursor);
+        std::list<PieceDescriptor>::iterator iterat(int cursor);
 
         PieceTable(std::string str);
         ~PieceTable();

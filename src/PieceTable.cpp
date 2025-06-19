@@ -32,6 +32,24 @@ void PieceTable::stringify(std::string &ret){
 
 //TODO: Implement this function
 void PieceTable::insert(std::string str, int cursorPos){
+    std::list<PieceDescriptor>::iterator it = iterat(cursorPos);
+    int relativePos = rpos(cursorPos, *it);
+    int bufferPos = it->startIndex + relativePos;
+    if(relativePos == 0){
+        std::cout << "at edge\n";
+        //if relativePos == 0, then it's at an edge
+        insertAtEdge(str, it);
+        return;
+    }else{
+        //create a new descriptor to insert beforet he iterator and change it 
+        //to be correct 
+        PieceDescriptor newDesc{it->isFile, it->startIndex, (size_t)relativePos};
+        it->length = it->length - relativePos;
+        it->startIndex = bufferPos;
+        pieceDescriptors.insert(it, newDesc);
+        insertAtEdge(str, it);
+        return;
+    }
 }
 void PieceTable::insertAtEdge(std::string str, std::list<PieceDescriptor>::iterator it){
     pieceDescriptors.insert(it, {false, (uint)add.length(), str.length()});
@@ -69,15 +87,18 @@ int PieceTable::rpos(int cursor, PieceDescriptor current){
 }
 
 PieceDescriptor PieceTable::at(int cursor){
+    return *iterat(cursor);
+}
+
+std::list<PieceDescriptor>::iterator PieceTable::iterat(int cursor){
     std::list<PieceDescriptor>::iterator it1 = pieceDescriptors.begin();
     uint offset = it1->startIndex + it1->length; 
-    while(offset < cursor){
+    while(offset <= cursor){
         it1++;
         offset += it1->length;
     }
-    return *it1;
+    return it1;
 }
-
 char* PieceTable::print(){
     std::string res;
     char *out;
