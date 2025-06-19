@@ -36,7 +36,7 @@ void PieceTable::insert(std::string str, int cursorPos){
     int relativePos = rpos(cursorPos, *it);
     int bufferPos = it->startIndex + relativePos;
     if(relativePos == 0){
-        std::cout << "at edge\n";
+        // std::cout << "at edge\n";
         //if relativePos == 0, then it's at an edge
         insertAtEdge(str, it);
         return;
@@ -56,8 +56,9 @@ void PieceTable::insertAtEdge(std::string str, std::list<PieceDescriptor>::itera
     add += str;
 }
 
-//TODO: Implement this function
 void PieceTable::remove(int cursorPos, int length){
+    //TODO: Implement this function
+
 }
 
 /**
