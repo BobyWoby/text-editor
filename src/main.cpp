@@ -149,6 +149,7 @@ int main(int argc, char *argv[]) {
     bool running = true;
     Mode activeMode = NORMAL;
     int cursor = 0;
+    std::string command{}; 
 
     std::string filepath = "";
     if(argc < 2){
@@ -173,6 +174,7 @@ int main(int argc, char *argv[]) {
     while(file.get(c)){
         fileStr += c;
     }
+    file.close();
     drawer.text_string = fileStr;
     PieceTable ptable{fileStr};
 
@@ -184,11 +186,14 @@ int main(int argc, char *argv[]) {
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_EVENT_TEXT_INPUT:
-                    strncpy(insertText, event.text.text, sizeof(insertText));
-                    ptable.insert(insertText, cursor);
-                    ptable.stringify(drawer.text_string);
-                    cursor++;
-                    // drawer.text_string += insertText;
+                    if(activeMode == INSERT){
+                        strncpy(insertText, event.text.text, sizeof(insertText));
+                        ptable.insert(insertText, cursor);
+                        ptable.stringify(drawer.text_string);
+                        cursor++;
+                    } else if (activeMode == COMMAND){
+                        command += event.text.text;
+                    }
                     break;
                 case SDL_EVENT_KEY_DOWN:
                     SDL_Keycode keycode = event.key.key;
@@ -196,12 +201,25 @@ int main(int argc, char *argv[]) {
                         SDL_StopTextInput(drawer.window);
                         // ptable.print();
                         activeMode = NORMAL;
-                    } else if (keycode == SDLK_RETURN && activeMode == INSERT) {
-                        strncpy(insertText, "\n", sizeof(insertText));
-                        ptable.insert(insertText, cursor);
-                        ptable.stringify(drawer.text_string);
-                        cursor++;
-                        drawer.text_string += "\n";
+                    } else if (keycode == SDLK_RETURN) {
+                        if(activeMode == INSERT){
+                            strncpy(insertText, "\n", sizeof(insertText));
+                            ptable.insert(insertText, cursor);
+                            ptable.stringify(drawer.text_string);
+                            cursor++;
+                            drawer.text_string += "\n";
+                        } else if(activeMode == COMMAND){
+                            std::cout << "running command: " << command << "\n";
+                            if(command == "w"){
+                                //write to the file
+                                std::ofstream file(filepath);
+                                file << drawer.text_string;
+                                file.close();
+                            }else if(command == "q"){
+                                return 0;
+                            }
+                            command = ""; // flush the command buffer after running
+                         }
                     } else if (keycode == SDLK_ESCAPE || (keycode == SDLK_Q && activeMode != INSERT)) {
                         SDL_StopTextInput(drawer.window);
                         activeMode = NORMAL;
@@ -223,6 +241,13 @@ int main(int argc, char *argv[]) {
                                 ptable.remove(cursor, 1);
                                 ptable.stringify(drawer.text_string);
                             }
+                        } else if (keycode == 59){ // this is a colon
+                            SDL_StartTextInput(drawer.window);
+                            activeMode = COMMAND;
+                            std::cout << "Command Mode\n";
+                            command = "";
+                        } else{
+                            // std::cout << keycode << "\n";
                         }
                     }
 
