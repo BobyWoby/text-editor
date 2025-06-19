@@ -25,7 +25,7 @@ void PieceTable::stringify(std::string &ret){
             assert((desc.startIndex < add.length()));
             out += add.substr(desc.startIndex, desc.length);
         }
-        out += "|";
+        // out += "|";
     }
     ret = out;
 }
@@ -36,8 +36,6 @@ void PieceTable::insert(std::string str, int cursorPos){
     int relativePos = rpos(cursorPos, *it);
     int bufferPos = it->startIndex + relativePos;
     if(relativePos == 0){
-        // std::cout << "at edge\n";
-        //if relativePos == 0, then it's at an edge
         insertAtEdge(str, it);
         return;
     }else{
@@ -56,9 +54,37 @@ void PieceTable::insertAtEdge(std::string str, std::list<PieceDescriptor>::itera
     add += str;
 }
 
+//TODO: Implement this function
 void PieceTable::remove(int cursorPos, int length){
-    //TODO: Implement this function
+    std::list<PieceDescriptor>::iterator it = iterat(cursorPos);
+    int relativePos = rpos(cursorPos, *it);
 
+
+    if(relativePos + length == it->length){
+        it->length = relativePos;
+        if(!relativePos) pieceDescriptors.erase(it);
+        return;
+    } else if (relativePos + length < it->length){
+        if(!relativePos){
+            it->startIndex += length;
+            it->length -= length;
+            return;
+        }
+        PieceDescriptor newDesc{it->isFile, it->startIndex, (size_t)relativePos};
+        it->startIndex += relativePos + length;
+        it->length -= (relativePos + length);
+        pieceDescriptors.insert(it, newDesc);
+        return;
+    } else{
+        // //TODO: Kinda wanna try and do it without recursion, but this should work?
+        length -= (it->length - relativePos);
+        it->length = relativePos;
+        if(it->length == 0){
+            pieceDescriptors.erase(it);
+        }
+        if(!cursorPos) remove(cursorPos, length);
+        else remove(cursorPos, length);
+    }
 }
 
 /**
@@ -72,9 +98,6 @@ void PieceTable::remove(int cursorPos, int length){
 int PieceTable::rpos(int cursor, PieceDescriptor current){
     uint lastEnd = pieceDescriptors.begin()->startIndex;
     for(auto desc : pieceDescriptors){
-        if(desc.isFile == current.isFile && desc.startIndex == current.startIndex){
-            break;
-        }
         if(desc.isFile != current.isFile){
             cursor -= desc.length;
         }else{
@@ -82,6 +105,9 @@ int PieceTable::rpos(int cursor, PieceDescriptor current){
                 cursor += desc.startIndex - lastEnd;
             }
             lastEnd = desc.startIndex + desc.length;
+        }
+        if(desc.isFile == current.isFile && desc.startIndex == current.startIndex){
+            break;
         }
     }
     return cursor - current.startIndex;

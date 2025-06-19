@@ -219,8 +219,10 @@ int main(int argc, char *argv[]) {
                                 cursor += 1;
                             }
                         } else if (keycode == SDLK_X){
-                            ptable.remove(cursor, 1);
-                            ptable.stringify(drawer.text_string);
+                            if(activeMode == NORMAL){
+                                ptable.remove(cursor, 1);
+                                ptable.stringify(drawer.text_string);
+                            }
                         }
                     }
 
