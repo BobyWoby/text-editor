@@ -192,6 +192,7 @@ int main(int argc, char *argv[]) {
                         ptable.stringify(drawer.text_string);
                         cursor++;
                     } else if (activeMode == COMMAND){
+                        if(command == ":") command = "";
                         command += event.text.text;
                     }
                     break;
@@ -216,15 +217,19 @@ int main(int argc, char *argv[]) {
                                 file << drawer.text_string;
                                 file.close();
                             }else if(command == "q"){
-                                return 0;
+                                running = false;
                             }
                             command = ""; // flush the command buffer after running
+                            activeMode = NORMAL;
                          }
-                    } else if (keycode == SDLK_ESCAPE || (keycode == SDLK_Q && activeMode != INSERT)) {
-                        SDL_StopTextInput(drawer.window);
-                        activeMode = NORMAL;
-                        running = false;
-                    } else if(activeMode == NORMAL){
+                    } else if (keycode == SDLK_BACKSPACE){
+                        if(activeMode == INSERT){
+                            // if(cursor > 0){
+                            //     ptable.remove(--cursor, 1);
+                            //     ptable.stringify(drawer.text_string);
+                            // }
+                        }
+                    } else if (activeMode == NORMAL){
                         if (keycode == SDLK_I) {
                             SDL_StartTextInput(drawer.window);
                             activeMode = INSERT;
